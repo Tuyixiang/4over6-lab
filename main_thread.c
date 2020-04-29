@@ -4,12 +4,14 @@
 #include <fcntl.h>
 #include <netdb.h>
 #include <sys/epoll.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
 #include "main.h"
 #include "msg.h"
 
 // IPv6 监听的接口
-int server_sock;
+int sock_server;
 // epoll fd
 int epfd;
 struct epoll_event *events;
@@ -70,8 +72,8 @@ void main_thread() {
     ERR("failed to create epoll fd");
   }
   // add IPv6 server socket
-  server_sock = create_ipv6_socket();
-  add_socket(server_sock, NULL);
+  sock_server = create_ipv6_socket();
+  add_socket(sock_server, NULL);
 
   // create event pool
   events = calloc(MAX_EPOLL_EVENT, sizeof(struct epoll_event));
@@ -84,18 +86,49 @@ void main_thread() {
       if (event->data.ptr == NULL) {
         // IPv6 socket incoming connection(s)
         while (1) {
-          int in_sock = accept(server_sock, NULL, NULL);
-          if (in_sock == -1) {
+          struct sockaddr_storage in_addr;
+          socklen_t in_len = sizeof(struct sockaddr);
+          int sock_in =
+              accept(sock_server, (struct sockaddr *)&in_addr, &in_len);
+
+          if (sock_in == -1) {
             // not ready or failed
             if (!(errno == EAGAIN || errno == EWOULDBLOCK)) {
               LOG("failed to accept");
-            } else {
-              LOG("accept not ready");
             }
             break;
           }
+
+          // drop if full
+          if (user_info_list_full()) {
+            LOG("client full, dropping connection");
+            close(sock_in);
+            continue;
+          }
+
           SUCCESS("accept");
 
+          // get client info
+          if (in_addr.ss_family == AF_INET6) {
+            struct sockaddr_in6 *addr6 = (struct sockaddr_in6 *)&in_addr;
+
+            // create user info
+            struct UserInfo *user_info = get_locked_user_info_slot();
+
+            // save address6 & sock_in
+            user_info->address_6 = addr6->sin6_addr;
+            user_info->sock_in = sock_in;
+
+            pthread_mutex_unlock(&user_info->lock);
+
+            SUCCESS("user info created");
+
+            debug_print(user_info);
+            
+          } else {
+            LOG("get ipv4 connection, dropping");
+            close(sock_in);
+          }
         }
       }
     }

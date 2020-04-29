@@ -1,9 +1,8 @@
 #ifndef _COMMON_H_
 
-#define LISTEN_PORT 8080
+#define LISTEN_PORT 8888
 #define MAX_LISTEN_QUEUE 4
 #define MAX_CLIENT 128
-#define NET_PORT 30000
 #define MAX_EPOLL_EVENT 64
 
 #include <assert.h>
@@ -38,5 +37,15 @@
     printf(format, ##__VA_ARGS__);          \
     printf("\n");                           \
   } while (0);
+
+#define IP4_FMT "%d.%d.%d.%d"
+#define IP6_FMT "%x:%x:%x:%x:%x:%x:%x:%x"
+#define IP4(addr) \
+  (addr) >> 24, ((addr) >> 16) & 255, ((addr) >> 8) & 255, (addr)&255
+#define IP6(addr)                                                   \
+  (addr).__in6_u.__u6_addr16[0], (addr).__in6_u.__u6_addr16[1],     \
+      (addr).__in6_u.__u6_addr16[2], (addr).__in6_u.__u6_addr16[3], \
+      (addr).__in6_u.__u6_addr16[4], (addr).__in6_u.__u6_addr16[5], \
+      (addr).__in6_u.__u6_addr16[6], (addr).__in6_u.__u6_addr16[7]
 
 #endif  // _COMMON_H_
