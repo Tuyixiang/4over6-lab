@@ -18,6 +18,8 @@ struct PacketChain *pop_packet(struct PacketChain **target) {
     free(*target);
     *target = NULL;
   } else {
-    
+    struct PacketChain *next = (*target)->next;
+    free(*target);
+    *target = next;
   }
 }

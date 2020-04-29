@@ -2,6 +2,8 @@
 
 #include "main_thread.h"
 #include <stdio.h>
+#include <linux/if.h>
+#include <linux/if_tun.h>
 
 char *dns_string;
 int tunfd;
@@ -25,10 +27,29 @@ void get_dns() {
 }
 
 void open_tun() {
+  char tun_name[] = "tun4o6";
   tunfd = open("/dev/net/tun", O_RDWR);
   if (tunfd == -1) {
     ERR("failed to open tun");
   }
+  // set flags
+  struct ifreq ifr;
+  memset(&ifr, 0, sizeof(struct ifreq));
+  ifr.ifr_flags = IFF_TUN | IFF_NO_PI;
+  // set name
+  strcpy(ifr.ifr_name, tun_name);
+  // apply
+  if (ioctl(tunfd, TUNSETIFF, &ifr) < 0) {
+    ERR("failed to configure tun");
+  }
+
+  char buffer[128];
+  sprintf(buffer, "ip link set dev %s up", tun_name);
+  system(buffer);
+  sprintf(buffer, "ip a add 13.8.0.1/24 dev %s", tun_name);
+  system(buffer);
+  sprint(buffer, "ip link set dev %s mtu 1500", tun_name);
+  system(buffer);
 }
 
 int main() {

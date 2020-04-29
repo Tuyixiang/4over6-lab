@@ -12,9 +12,10 @@ void init_user_info_and_lock(struct UserInfo *info) {
   info->valid = 1;
   info->sock_in = -1;
   info->last_heartbeat = info->last_request = time(NULL);
-  info->pending_read_size = info->pending_write_size = info->pending_out_size =
-      0;
-  info->pending_read = info->pending_write = info->pending_out = NULL;
+  // info->pending_read_size = info->pending_write_size = info->pending_out_size
+  // =
+  //     0;
+  // info->pending_read = info->pending_write = info->pending_out = NULL;
 }
 
 void free_user_info(struct UserInfo *user_info) {
@@ -39,24 +40,34 @@ void init_user_info_list() {
   for (int i = 0; i < MAX_CLIENT; i++) {
     user_info_list[i].valid = 0;
     user_info_list[i].address_4.s_addr = BASE_IP + i;
-    user_info_list[i].pending_read = malloc(RECV_BUFFER_LENGTH);
   }
   assert(RECV_BUFFER_LENGTH > sizeof(struct Msg));
 
   user_info_list_count = 0;
 }
 
-struct UserInfo *get_locked_user_info_slot() {
-  assert(!user_info_list_full());
+struct UserInfo *get_locked_user_info_slot(struct sockaddr_in6 *addr) {
+  int empty = -1;
   for (int i = 0; i < MAX_CLIENT; i++) {
-    if (!user_info_list[i].valid) {
-      struct UserInfo *slot = &user_info_list[i];
-      init_user_info_and_lock(slot);
-      user_info_list_count++;
-      return slot;
+    if (user_info_list[i].valid) {
+      if (!memcmp(&user_info_list[i].address_6, addr,
+                  sizeof(struct sockaddr_in6))) {
+        pthread_mutex_lock(&user_info_list[i].lock);
+        return &user_info_list[i];
+      }
+    } else {
+      empty = i;
     }
   }
-  ERR("wtf");
+  if (empty >= 0) {
+    struct UserInfo *slot = &user_info_list[empty];
+    init_user_info_and_lock(slot);
+    slot->address_6 = *addr;
+    user_info_list_count++;
+    return slot;
+  } else {
+    return NULL;
+  }
 }
 
 int user_info_list_full() { return user_info_list_count >= MAX_CLIENT; }
@@ -69,17 +80,15 @@ void debug_print(const struct UserInfo *user_info) {
   LOG("\tlast_request:\t%ld", user_info->last_request);
   LOG("\taddress_4:\t" IP4_FMT, IP4(user_info->address_4));
   LOG("\taddress_6:\t" IP6_FMT, IP6(user_info->address_6));
-  LOG("\tpending_read:\t%d B", user_info->pending_read_size);
-  LOG("\tpending_write:\t%d B", user_info->pending_write_size);
-  LOG("\tpending_out:\t%d B", user_info->pending_out_size);
 }
-
+/*
 int try_read(struct UserInfo *info) {
   pthread_mutex_lock(&info->lock);
 
   int result = 0;
 
   // try to read
+  char buffer[RECV_BUFFER_LENGTH];
   int len = recv(info->sock_in, info->pending_read + info->pending_read_size,
                  RECV_BUFFER_LENGTH - info->pending_read_size, MSG_DONTWAIT);
   if (len < 0) {
@@ -141,9 +150,8 @@ int try_out(struct UserInfo *info) {
   int result = 0;
 
   if (info->pending_out_size > 0) {
-    int len = send(tunfd, info->pending_out, info->pending_out_size, MSG_DONTWAIT);
-    if (len < 0) {
-      if (!(errno == EAGAIN || errno == EWOULDBLOCK)) {
+    int len = send(tunfd, info->pending_out, info->pending_out_size,
+MSG_DONTWAIT); if (len < 0) { if (!(errno == EAGAIN || errno == EWOULDBLOCK)) {
         result = -1;
       }
     } else {
@@ -164,4 +172,4 @@ int try_out(struct UserInfo *info) {
 
   pthread_mutex_unlock(&info->lock);
   return result;
-}
+}*/
