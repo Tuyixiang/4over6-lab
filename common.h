@@ -42,10 +42,14 @@
 #define IP6_FMT "%x:%x:%x:%x:%x:%x:%x:%x"
 #define IP4(addr) \
   (addr) >> 24, ((addr) >> 16) & 255, ((addr) >> 8) & 255, (addr)&255
-#define IP6(addr)                                                   \
-  (addr).__in6_u.__u6_addr16[0], (addr).__in6_u.__u6_addr16[1],     \
-      (addr).__in6_u.__u6_addr16[2], (addr).__in6_u.__u6_addr16[3], \
-      (addr).__in6_u.__u6_addr16[4], (addr).__in6_u.__u6_addr16[5], \
-      (addr).__in6_u.__u6_addr16[6], (addr).__in6_u.__u6_addr16[7]
+#define IP6(addr)                                                          \
+  (addr).__in6_u.__u6_addr8[0] * 256 + (addr).__in6_u.__u6_addr8[1],       \
+      (addr).__in6_u.__u6_addr8[2] * 256 + (addr).__in6_u.__u6_addr8[3],   \
+      (addr).__in6_u.__u6_addr8[4] * 256 + (addr).__in6_u.__u6_addr8[5],   \
+      (addr).__in6_u.__u6_addr8[6] * 256 + (addr).__in6_u.__u6_addr8[7],   \
+      (addr).__in6_u.__u6_addr8[8] * 256 + (addr).__in6_u.__u6_addr8[9],   \
+      (addr).__in6_u.__u6_addr8[10] * 256 + (addr).__in6_u.__u6_addr8[11], \
+      (addr).__in6_u.__u6_addr8[12] * 256 + (addr).__in6_u.__u6_addr8[13], \
+      (addr).__in6_u.__u6_addr8[14] * 256 + (addr).__in6_u.__u6_addr8[15]
 
 #endif  // _COMMON_H_
