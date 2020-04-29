@@ -1,4 +1,9 @@
 #include "user_info.h"
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 struct UserInfo *user_info_list;
 int user_info_list_count;
@@ -21,8 +26,12 @@ void free_user_info(struct UserInfo *user_info) {
 // 在 user_info_list 上创建 MAX_CLIENT 条的共享内存空间
 void init_user_info_list() {
   // create shared memory
+  int fd = shm_open(SHARED_MEMORY, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+  if (fd == -1 || ftruncate(fd, MAX_CLIENT * sizeof(struct UserInfo)) == -1) {
+    ERR("failed to create shared memory");
+  }
   user_info_list = mmap(NULL, MAX_CLIENT * sizeof(struct UserInfo),
-                        PROT_READ | PROT_WRITE, MAP_SHARED, -1, 0);
+                        PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
   // mark all as empty
   for (int i = 0; i < MAX_CLIENT; i++) {
     user_info_list[i].valid = 0;

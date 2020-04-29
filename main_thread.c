@@ -87,7 +87,7 @@ void main_thread() {
         // IPv6 socket incoming connection(s)
         while (1) {
           struct sockaddr_storage in_addr;
-          socklen_t in_len = sizeof(struct sockaddr);
+          socklen_t in_len = sizeof(struct sockaddr_storage);
           int sock_in =
               accept(sock_server, (struct sockaddr *)&in_addr, &in_len);
 

@@ -4,6 +4,7 @@
 #define MAX_LISTEN_QUEUE 4
 #define MAX_CLIENT 128
 #define MAX_EPOLL_EVENT 64
+#define SHARED_MEMORY "/4over6_lab_shm"
 
 #include <assert.h>
 #include <netinet/in.h>
