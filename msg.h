@@ -1,11 +1,12 @@
 #ifndef _MSG_H_
+#define _MSG_H_
 
 #include "common.h"
 
 struct Msg {
-    int length;
-    char type;
-    char data[4096];
+  int length;
+  char type;
+  char data[4096];
 };
 
 #define MSG_IP_REQ 100
@@ -14,4 +15,6 @@ struct Msg {
 #define MSG_NET_RES 103
 #define MSG_HEARTBEAT 104
 
-#endif // _MSG_H_
+void debug_print_msg(const struct Msg *);
+
+#endif  // _MSG_H_

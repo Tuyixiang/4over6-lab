@@ -1,11 +1,13 @@
 #ifndef _USER_INFO_H_
+#define _USER_INFO_H_
 
 #include "common.h"
+
+extern struct UserInfo *user_info_list;
 
 struct UserInfo {
   int valid;
   int sock_in;
-  int sock_out;
   time_t last_heartbeat;
   time_t last_request;
   struct in_addr address_4;
@@ -15,9 +17,9 @@ struct UserInfo {
   int pending_write_size;
   char *pending_read;
   char *pending_write;
+  int pending_out_size;
+  char *pending_out;
 };
-
-extern struct UserInfo *user_info_list;
 
 void init_user_info_list();
 
@@ -30,5 +32,12 @@ struct UserInfo *get_locked_user_info_slot();
 int user_info_list_full();
 
 void debug_print(const struct UserInfo *);
+
+// >0: ready size. 0: not ready. -1: fail
+int try_read(struct UserInfo *);
+
+int try_write(struct UserInfo *);
+
+int try_out(struct UserInfo *);
 
 #endif  // _USER_INFO_H_
