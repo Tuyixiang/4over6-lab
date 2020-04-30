@@ -19,6 +19,7 @@ void keep_thread() {
         } else if (now - info->last_heartbeat >= HEARTBEAT_TIMEOUT) {
           LOG("sending heartbeat to " IP6_FMT, IP6(info->address_6));
           pthread_mutex_lock(&sock_server_lock);
+          info->last_heartbeat = now;
           int len = sendto(sock_server, "\x05\x00\x00\x00\x68", 5, MSG_WAITALL,
                  (struct sockaddr *)&info->address_6,
                  sizeof(struct sockaddr_in6));

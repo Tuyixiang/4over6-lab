@@ -34,6 +34,7 @@ void handle_ip_req(struct UserInfo *info, struct Msg *msg) {
   if (len < 0) {
     LOG("forward failed with errno: %d", errno);
   }
+  LOG("send %s", msg->data);
   pthread_mutex_unlock(&sock_server_lock);
 }
 
@@ -96,28 +97,47 @@ void main_thread() {
           struct UserInfo *info =
               get_locked_user_info_slot((struct sockaddr_in6 *)&in_addr);
 
+          if (info == NULL) {
+            LOG("user list full, dropping connection from " IP6_FMT,
+                IP6(*(struct sockaddr_in6 *)&in_addr));
+            continue;
+          }
+
           info->last_request = time(NULL);
 
           switch (msg.type) {
             case MSG_IP_REQ:
-              SUCCESS("received packet from " IP6_FMT ":",
-                      IP6(info->address_6));
+            case MSG_NET_REQ:
+            case MSG_HEARTBEAT:
+              SUCCESS("received packet from " IP6_FMT "(" IP4_FMT "):",
+                      IP6(info->address_6), IP4(info->address_4));
               debug_print_msg(&msg);
+              break;
+            case MSG_DISCONNECT:
+              SUCCESS("disconnect from " IP6_FMT, IP6(info->address_6));
+              pthread_mutex_unlock(&info->lock);
+              free_user_info(info);
+              continue;
+            case MSG_RESET:
+              SUCCESS("RESET signal from " IP6_FMT, IP6(info->address_6));
+              pthread_mutex_unlock(&info->lock);
+              for (int i = 0; i < MAX_CLIENT; i++) {
+                if (user_info_list[i].valid) {
+                  free_user_info(&user_info_list[i]);
+                }
+              }
+              continue;
+            default:
+              LOG("unexpected packet type: %d", msg.type);
+          }
+
+          switch (msg.type) {
+            case MSG_IP_REQ:
               handle_ip_req(info, &msg);
               break;
             case MSG_NET_REQ:
-              SUCCESS("received packet from " IP6_FMT ":",
-                      IP6(info->address_6));
-              debug_print_msg(&msg);
               handle_net_req(info, &msg);
               break;
-            case MSG_HEARTBEAT:
-              SUCCESS("received packet from " IP6_FMT ":",
-                      IP6(info->address_6));
-              debug_print_msg(&msg);
-              break;
-            default:
-              LOG("unexpected packet type: %d", msg.type);
           }
 
           pthread_mutex_unlock(&info->lock);

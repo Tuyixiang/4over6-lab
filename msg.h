@@ -14,6 +14,8 @@ struct Msg {
 #define MSG_NET_REQ 102
 #define MSG_NET_RES 103
 #define MSG_HEARTBEAT 104
+#define MSG_DISCONNECT 105
+#define MSG_RESET 106
 
 void debug_print_msg(const struct Msg *);
 

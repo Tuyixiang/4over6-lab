@@ -34,7 +34,6 @@ void init_user_info_list() {
   if (fd == -1 || ftruncate(fd, MAX_CLIENT * sizeof(struct UserInfo)) == -1) {
     ERR("failed to create shared memory");
   }
-  // user_info_list = malloc(MAX_CLIENT * sizeof(struct UserInfo));
   user_info_list = mmap(NULL, MAX_CLIENT * sizeof(struct UserInfo),
                         PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
   // mark all as empty
@@ -78,101 +77,8 @@ int user_info_list_full() { return user_info_list_count >= MAX_CLIENT; }
 void debug_print(const struct UserInfo *user_info) {
   LOG("user_info:");
   LOG("\tvalid:\t\t%d", user_info->valid);
-  // LOG("\tsock_in:\t%d", user_info->sock_in);
   LOG("\tlast_heartbeat:\t%ld", user_info->last_heartbeat);
   LOG("\tlast_request:\t%ld", user_info->last_request);
   LOG("\taddress_4:\t" IP4_FMT, IP4(user_info->address_4));
   LOG("\taddress_6:\t" IP6_FMT, IP6(user_info->address_6));
 }
-/*
-int try_read(struct UserInfo *info) {
-  pthread_mutex_lock(&info->lock);
-
-  int result = 0;
-
-  // try to read
-  char buffer[RECV_BUFFER_LENGTH];
-  int len = recv(info->sock_in, info->pending_read + info->pending_read_size,
-                 RECV_BUFFER_LENGTH - info->pending_read_size, MSG_DONTWAIT);
-  if (len < 0) {
-    if (!(errno == EAGAIN || errno == EWOULDBLOCK)) {
-      result = -1;
-    }
-  } else {
-    LOG("%d bytes read from " IP6_FMT, len, IP6(info->address_6));
-    info->pending_read_size += len;
-    if (info->pending_read_size >= 5) {
-      int msg_size = ((struct Msg *)info->pending_read)->length;
-      if (info->pending_read_size >= msg_size) {
-        // ready
-        result = msg_size;
-      }
-    }
-  }
-
-  pthread_mutex_unlock(&info->lock);
-
-  return result;
-}
-
-int try_write(struct UserInfo *info) {
-  pthread_mutex_lock(&info->lock);
-  int result = 0;
-
-  if (info->pending_write_size > 0) {
-    int len = send(info->sock_in, info->pending_write, info->pending_write_size,
-                   MSG_DONTWAIT);
-    if (len < 0) {
-      if (!(errno == EAGAIN || errno == EWOULDBLOCK)) {
-        result = -1;
-      }
-    } else {
-      LOG("%d bytes sent to " IP6_FMT, len, IP6(info->address_6));
-      if (len >= info->pending_write_size) {
-        free(info->pending_write);
-        info->pending_write_size = 0;
-        result = 1;
-      } else {
-        info->pending_write_size -= len;
-        char *buff = malloc(info->pending_write_size);
-        memcpy(buff, info->pending_write + len, info->pending_write_size);
-        free(info->pending_write);
-        info->pending_write = buff;
-      }
-    }
-  } else {
-    result = 1;
-  }
-
-  pthread_mutex_unlock(&info->lock);
-  return result;
-}
-
-int try_out(struct UserInfo *info) {
-  pthread_mutex_lock(&info->lock);
-  int result = 0;
-
-  if (info->pending_out_size > 0) {
-    int len = send(tunfd, info->pending_out, info->pending_out_size,
-MSG_DONTWAIT); if (len < 0) { if (!(errno == EAGAIN || errno == EWOULDBLOCK)) {
-        result = -1;
-      }
-    } else {
-      LOG("%d bytes sent to tun", len);
-      if (len >= info->pending_out_size) {
-        free(info->pending_out);
-        info->pending_out_size = 0;
-        result = 1;
-      } else {
-        info->pending_out_size -= len;
-        char *buff = malloc(info->pending_out_size);
-        memcpy(buff, info->pending_out + len, info->pending_out_size);
-        free(info->pending_out);
-        info->pending_out = buff;
-      }
-    }
-  }
-
-  pthread_mutex_unlock(&info->lock);
-  return result;
-}*/

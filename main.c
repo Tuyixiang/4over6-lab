@@ -15,8 +15,25 @@ int tunfd;
 int sock_server;
 pthread_mutex_t sock_server_lock;
 
+void log_config() {
+  printf("listen port:\t%d\n", LISTEN_PORT);
+  printf("max clients:\t%d\n", MAX_CLIENT);
+  struct in_addr addr;
+  addr.s_addr = BASE_IP;
+  printf("base IP:\t" IP4_FMT "\n", IP4(addr));
+  printf("recv buffer size:\t%d\n", RECV_BUFFER_LENGTH);
+  printf("heartbeat interval:\t%d\n", HEARTBEAT_TIMEOUT);
+  printf("timeout:\t%d\n", DISCONNECT_TIMEOUT);
+}
+
+void run_system(const char *command) {
+  printf("%s:%d:\t%s", __FILE__, __LINE__, command);
+  system(command);
+  printf("  \x1b[32mdone\x1b[0m\n");
+}
+
 void get_dns() {
-  system("cat /etc/resolv.conf | grep -i nameserver | cut -c 12-30 > dns.txt");
+  run_system("cat /etc/resolv.conf | grep -i nameserver | cut -c 12-30 > dns.txt");
   FILE *file = fopen("dns.txt", "r");
   char buf[1024];
   char dns[3][100];
@@ -56,11 +73,11 @@ void open_tun() {
 
   char buffer[128];
   sprintf(buffer, "ip link set dev %s up", tun_name);
-  system(buffer);
+  run_system(buffer);
   sprintf(buffer, "ip a add 13.8.0.1/24 dev %s", tun_name);
-  system(buffer);
+  run_system(buffer);
   sprintf(buffer, "ip link set dev %s mtu 1500", tun_name);
-  system(buffer);
+  run_system(buffer);
 }
 
 // 创建并返回 IPv6 接口
@@ -81,9 +98,22 @@ void create_ipv6_socket() {
   SUCCESS("listening on port %d", LISTEN_PORT);
 }
 
+void setup_iptables() {
+  run_system("iptables -F");
+  run_system("iptables -t nat -F");
+  run_system("iptables -A FORWARD -j ACCEPT");
+  struct in_addr mask;
+  mask.s_addr = BASE_IP & 0xffffff00u;
+  char buffer[100];
+  sprintf(buffer, "iptables -t nat -A POSTROUTING -s " IP4_FMT "/24 -j MASQUERADE", IP4(mask));
+  run_system(buffer);
+}
+
 int main() {
+  log_config();
   get_dns();
   open_tun();
+  setup_iptables();
   create_ipv6_socket();
   init_user_info_list();
 
