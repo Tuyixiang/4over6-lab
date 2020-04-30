@@ -4,28 +4,9 @@
 #include "main.h"
 #include "msg.h"
 
-// IPv6 监听的接口
-int sock_server;
 // epoll fd
 int epfd;
 struct epoll_event *events;
-
-// 创建并返回 IPv6 接口
-void create_ipv6_socket() {
-  struct sockaddr_in6 address;
-  // create socket
-  sock_server = socket(AF_INET6, SOCK_DGRAM, 0);
-  if (sock_server < 0) {
-    ERR("failed to create socket");
-  }
-  // bind to port
-  address.sin6_addr = in6addr_any;
-  address.sin6_family = AF_INET6;
-  address.sin6_port = htons(LISTEN_PORT);
-  bind(sock_server, (struct sockaddr *)&address, sizeof(address));
-
-  SUCCESS("listening on IPv6");
-}
 
 // 将 socket 加入 epoll，其中 user data 为 UserInfo *ptr（服务器连接为 NULL）
 void add_socket(int sock, struct UserInfo *ptr) {
@@ -41,24 +22,36 @@ void add_socket(int sock, struct UserInfo *ptr) {
 }
 
 void handle_ip_req(struct UserInfo *info, struct Msg *msg) {
-  int len = sprintf(msg->data, IP4_FMT " 0.0.0.0 %s", IP4(info->address_4), dns_string);
+  int len = sprintf(msg->data, IP4_FMT " 0.0.0.0 %s", IP4(info->address_4),
+                    dns_string);
   msg->length = len + 5;
   msg->type = MSG_IP_RES;
 
-  sendto(sock_server, msg, msg->length, MSG_WAITALL, &info->address_6, sizeof(struct sockaddr_in6));
+  pthread_mutex_lock(&sock_server_lock);
+  len =
+      sendto(sock_server, msg, msg->length, MSG_WAITALL,
+             (struct sockaddr *)&info->address_6, sizeof(struct sockaddr_in6));
+  if (len < 0) {
+    LOG("forward failed with errno: %d", errno);
+  }
+  pthread_mutex_unlock(&sock_server_lock);
 }
 
 void handle_net_req(struct UserInfo *info, struct Msg *msg) {
-  send(tunfd, msg->data, msg->length - 5, MSG_WAITALL);
+  int s = write(tunfd, msg->data, msg->length - 5);
+  if (s < 0) {
+    ERR("failed to write tun");
+  }
+  LOG("%d bytes sent to tun", s);
 }
 
 void main_thread() {
+  SUCCESS("main thread started");
   epfd = epoll_create1(0);
   if (epfd < 0) {
     ERR("failed to create epoll fd");
   }
   // add IPv6 server socket
-  create_ipv6_socket();
   add_socket(sock_server, NULL);
 
   // create event pool
@@ -83,7 +76,7 @@ void main_thread() {
             if (!(errno == EAGAIN || errno == EWOULDBLOCK)) {
               LOG("failed to accept");
             }
-            continue;
+            break;
           }
 
           if (len < 5) {
@@ -99,9 +92,6 @@ void main_thread() {
             continue;
           }
 
-          SUCCESS("received packet:");
-          debug_print_msg(&msg);
-
           // get user info
           struct UserInfo *info =
               get_locked_user_info_slot((struct sockaddr_in6 *)&in_addr);
@@ -110,16 +100,24 @@ void main_thread() {
 
           switch (msg.type) {
             case MSG_IP_REQ:
+              SUCCESS("received packet from " IP6_FMT ":",
+                      IP6(info->address_6));
+              debug_print_msg(&msg);
               handle_ip_req(info, &msg);
               break;
             case MSG_NET_REQ:
+              SUCCESS("received packet from " IP6_FMT ":",
+                      IP6(info->address_6));
+              debug_print_msg(&msg);
               handle_net_req(info, &msg);
               break;
             case MSG_HEARTBEAT:
+              SUCCESS("received packet from " IP6_FMT ":",
+                      IP6(info->address_6));
+              debug_print_msg(&msg);
               break;
             default:
               LOG("unexpected packet type: %d", msg.type);
-              continue;
           }
 
           pthread_mutex_unlock(&info->lock);

@@ -10,7 +10,7 @@ void init_user_info_and_lock(struct UserInfo *info) {
   pthread_mutex_init(&info->lock, NULL);
   pthread_mutex_lock(&info->lock);
   info->valid = 1;
-  info->sock_in = -1;
+  // info->sock_in = -1;
   info->last_heartbeat = info->last_request = time(NULL);
   // info->pending_read_size = info->pending_write_size = info->pending_out_size
   // =
@@ -22,7 +22,7 @@ void free_user_info(struct UserInfo *user_info) {
   pthread_mutex_lock(&user_info->lock);
   user_info->valid = 0;
   user_info_list_count--;
-  close(user_info->sock_in);
+  // close(user_info->sock_in);
   pthread_mutex_unlock(&user_info->lock);
   pthread_mutex_destroy(&user_info->lock);
 }
@@ -31,9 +31,10 @@ void free_user_info(struct UserInfo *user_info) {
 void init_user_info_list() {
   // create shared memory
   int fd = shm_open(SHARED_MEMORY, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
-  if (fd == -1) {
+  if (fd == -1 || ftruncate(fd, MAX_CLIENT * sizeof(struct UserInfo)) == -1) {
     ERR("failed to create shared memory");
   }
+  // user_info_list = malloc(MAX_CLIENT * sizeof(struct UserInfo));
   user_info_list = mmap(NULL, MAX_CLIENT * sizeof(struct UserInfo),
                         PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
   // mark all as empty
@@ -42,6 +43,8 @@ void init_user_info_list() {
     user_info_list[i].address_4.s_addr = BASE_IP + i;
   }
   assert(RECV_BUFFER_LENGTH > sizeof(struct Msg));
+
+  SUCCESS("shared memory created");
 
   user_info_list_count = 0;
 }
@@ -75,7 +78,7 @@ int user_info_list_full() { return user_info_list_count >= MAX_CLIENT; }
 void debug_print(const struct UserInfo *user_info) {
   LOG("user_info:");
   LOG("\tvalid:\t\t%d", user_info->valid);
-  LOG("\tsock_in:\t%d", user_info->sock_in);
+  // LOG("\tsock_in:\t%d", user_info->sock_in);
   LOG("\tlast_heartbeat:\t%ld", user_info->last_heartbeat);
   LOG("\tlast_request:\t%ld", user_info->last_request);
   LOG("\taddress_4:\t" IP4_FMT, IP4(user_info->address_4));

@@ -5,9 +5,11 @@
 #define MAX_LISTEN_QUEUE 4
 #define MAX_CLIENT 128
 #define MAX_EPOLL_EVENT 64
-#define SHARED_MEMORY "/4over6_lab_shm"
+#define SHARED_MEMORY "/4over6_lab"
 #define BASE_IP 0x0D080002U
 #define RECV_BUFFER_LENGTH 8192
+#define HEARTBEAT_TIMEOUT 2
+#define DISCONNECT_TIMEOUT 60
 
 #define _GNU_SOURCE
 #include <assert.h>

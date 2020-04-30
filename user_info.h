@@ -2,13 +2,11 @@
 #define _USER_INFO_H_
 
 #include "common.h"
-#include "packet_chain.h"
-
 extern struct UserInfo *user_info_list;
 
 struct UserInfo {
   int valid;
-  int sock_in;
+  // int sock_in;
   time_t last_heartbeat;
   time_t last_request;
   struct in_addr address_4;

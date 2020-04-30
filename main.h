@@ -7,4 +7,7 @@ extern char *dns_string;
 extern int epfd;
 extern int tunfd;
 
+extern int sock_server;
+extern pthread_mutex_t sock_server_lock;
+
 #endif  // _MAIN_H_
