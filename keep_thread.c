@@ -24,7 +24,7 @@ void keep_thread() {
                  (struct sockaddr *)&info->address_6,
                  sizeof(struct sockaddr_in6));
           if (len == -1) {
-            LOG("errno: %d", errno);
+            WARN("failed to send heartbeat: %d", errno);
           }
           pthread_mutex_unlock(&sock_server_lock);
         }

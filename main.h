@@ -4,7 +4,6 @@
 #include "user_info.h"
 
 extern char *dns_string;
-extern int epfd;
 extern int tunfd;
 
 extern int sock_server;

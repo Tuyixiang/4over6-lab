@@ -33,7 +33,7 @@ void run_system(const char *command) {
 }
 
 void get_dns() {
-  run_system("cat /etc/resolv.conf | grep -i nameserver | cut -c 12-30 > dns.txt");
+  run_system("cat /etc/resolv.conf | grep -i '^nameserver' | cut -c 12-30 > dns.txt");
   FILE *file = fopen("dns.txt", "r");
   char buf[1024];
   char dns[3][100];

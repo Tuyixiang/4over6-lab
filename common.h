@@ -44,6 +44,13 @@
     printf("\x1b[0m\n");                            \
   } while (0);
 
+#define WARN(format, ...)                           \
+  do {                                              \
+    printf("\x1b[33m%s:%d:\t", __FILE__, __LINE__); \
+    printf(format, ##__VA_ARGS__);                  \
+    printf("\x1b[0m\n");                            \
+  } while (0);
+
 #define LOG(format, ...)                    \
   do {                                      \
     printf("%s:%d:\t", __FILE__, __LINE__); \

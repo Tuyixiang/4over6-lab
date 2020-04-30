@@ -10,12 +10,7 @@ void init_user_info_and_lock(struct UserInfo *info) {
   pthread_mutex_init(&info->lock, NULL);
   pthread_mutex_lock(&info->lock);
   info->valid = 1;
-  // info->sock_in = -1;
   info->last_heartbeat = info->last_request = time(NULL);
-  // info->pending_read_size = info->pending_write_size = info->pending_out_size
-  // =
-  //     0;
-  // info->pending_read = info->pending_write = info->pending_out = NULL;
 }
 
 void free_user_info(struct UserInfo *user_info) {

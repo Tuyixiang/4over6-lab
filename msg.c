@@ -1,4 +1,5 @@
 #include "msg.h"
+#include <sys/time.h>
 
 void debug_print_msg(const struct Msg *msg) {
   static const char *type_names[5] = {
@@ -6,17 +7,8 @@ void debug_print_msg(const struct Msg *msg) {
       "outbound traffic",   "heartbeat",
   };
   assert(msg->type >= MSG_IP_REQ && msg->type <= MSG_HEARTBEAT);
-  LOG("\tlength:\t%d", msg->length);
-  LOG("\ttype:\t%s", type_names[msg->type - MSG_IP_REQ]);
-  LOG("\tdata:");
-  printf("\x1b[2m");
-  for (int i = 0; i < msg->length - 5; i++) {
-    if (msg->data[i] >= 32 && msg->data[i] <= 127) {
-      // visible character
-      printf("%c", msg->data[i]);
-    } else {
-      printf("\\x%02x", msg->data[i]);
-    }
-  }
-  printf("\x1b[0m\n");
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  LOG("\ttime:\t%llu", 1000000 * tv.tv_sec + tv.tv_usec);
+  LOG("\ttype:\t%d %s", msg->type, type_names[msg->type - MSG_IP_REQ]);
 }

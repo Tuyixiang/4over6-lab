@@ -24,6 +24,7 @@ void fw_thread() {
         continue;
       }
 
+      pthread_mutex_lock(&info->lock);
       LOG("receiving tun packet for " IP4_FMT "(" IP6_FMT ")",
           IP4(info->address_4), IP6(info->address_6));
 
@@ -39,6 +40,7 @@ void fw_thread() {
         LOG("forward failed with errno: %d", errno);
       }
       pthread_mutex_unlock(&sock_server_lock);
+      pthread_mutex_unlock(&info->lock);
     }
   }
 }

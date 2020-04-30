@@ -5,10 +5,14 @@ HEADER_FILES = $(shell find . -name "*.h")
 CC = gcc
 CC_FLAGS = -std=c99 -lrt -lpthread
 
-run: $(C_FILES)
+run: $(C_FILES) $(HEADER_FILES)
 	@$(CC) $(CC_FLAGS) $(C_FILES) -O2 -o proj
 	@echo "---BUILD COMPLETE---"
 	@./proj
+
+test: $(C_FILES) $(HEADER_FILES)
+	@$(CC) $(CC_FLAGS) $(C_FILES) -O2 -o test
+	@echo "---BUILD COMPLETE---"
 
 clean:
 	@rm proj
