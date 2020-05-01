@@ -16,7 +16,10 @@ void fw_thread() {
     } else {
       uint32_t dst_ip = get_dst_ip(msg.data);
       int offset = dst_ip - BASE_IP;
-      assert(offset >= 0 && offset < MAX_CLIENT);
+      if (offset < 0 || offset >= MAX_CLIENT) {
+        LOG("received invalid tun packet");
+        continue;
+      }
       struct UserInfo *info = &user_info_list[offset];
       if (!info->valid) {
         LOG("received tun packet for " IP4_FMT " but no registry found",
