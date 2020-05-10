@@ -13,7 +13,6 @@ char *dns_string;
 int tunfd;
 // IPv6 监听的接口
 int sock_server;
-pthread_mutex_t sock_server_lock;
 
 void log_config() {
   printf("listen port:\t%d\n", LISTEN_PORT);
@@ -56,7 +55,7 @@ void get_dns() {
 
 void open_tun() {
   char tun_name[] = "tun4o6";
-  tunfd = open("/dev/net/tun", O_RDWR | O_CREAT);
+  tunfd = open("/dev/net/tun", O_RDWR | O_NONBLOCK);
   if (tunfd == -1) {
     ERR("failed to open tun");
   }
@@ -82,7 +81,6 @@ void open_tun() {
 
 // 创建并返回 IPv6 接口
 void create_ipv6_socket() {
-  pthread_mutex_init(&sock_server_lock, NULL);
   struct sockaddr_in6 address;
   // create socket
   sock_server = socket(AF_INET6, SOCK_DGRAM, 0);
@@ -117,12 +115,11 @@ int main() {
   create_ipv6_socket();
   init_user_info_list();
 
-  if (fork() == 0) {
-    fw_thread();
-  } else if (fork() == 0) {
-    keep_thread();
-  } else {
-    main_thread();
+  while (1) {
+    main_thread_once();
+    fw_thread_once();
+    keep_thread_once();
+    usleep(1000);
   }
   return 0;
 }

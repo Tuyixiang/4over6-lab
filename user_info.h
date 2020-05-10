@@ -11,7 +11,6 @@ struct UserInfo {
   time_t last_request;
   struct in_addr address_4;
   struct sockaddr_in6 address_6;
-  pthread_mutex_t lock;
 };
 
 void init_user_info_list();

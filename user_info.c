@@ -7,19 +7,13 @@ struct UserInfo *user_info_list;
 int user_info_list_count;
 
 void init_user_info_and_lock(struct UserInfo *info) {
-  pthread_mutex_init(&info->lock, NULL);
-  pthread_mutex_lock(&info->lock);
   info->valid = 1;
   info->last_heartbeat = info->last_request = time(NULL);
 }
 
 void free_user_info(struct UserInfo *user_info) {
-  pthread_mutex_lock(&user_info->lock);
   user_info->valid = 0;
   user_info_list_count--;
-  // close(user_info->sock_in);
-  pthread_mutex_unlock(&user_info->lock);
-  pthread_mutex_destroy(&user_info->lock);
 }
 
 // 在 user_info_list 上创建 MAX_CLIENT 条的共享内存空间
@@ -49,7 +43,6 @@ struct UserInfo *get_locked_user_info_slot(struct sockaddr_in6 *addr) {
     if (user_info_list[i].valid) {
       if (!memcmp(&user_info_list[i].address_6, addr,
                   sizeof(struct sockaddr_in6))) {
-        pthread_mutex_lock(&user_info_list[i].lock);
         return &user_info_list[i];
       }
     } else {

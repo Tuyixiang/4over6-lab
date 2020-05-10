@@ -3,6 +3,6 @@
 
 #include <pthread.h>
 
-void main_thread();
+void main_thread_once();
 
 #endif  // _MAIN_THREAD_H_
